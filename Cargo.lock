@@ -554,21 +554,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "learn"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "const_format",
- "crossterm",
- "env_logger",
- "log",
- "reqwest",
- "serde_json",
- "time",
- "tokio",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1086,6 +1071,21 @@ checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "task"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "const_format",
+ "crossterm",
+ "env_logger",
+ "log",
+ "reqwest",
+ "serde_json",
+ "time",
+ "tokio",
 ]
 
 [[package]]
