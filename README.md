@@ -2,6 +2,7 @@
 
 - [x] To build docs, use 'cargo doc' command
 - [x] to build, use 'cargo build' command
+- [x] to run, use 'RUST_LOG=task cargo run'
 
 - [x] To set environment variables in ~/.bashrc
 	- [x] export API_URL=https://api.currencybeacon.com 
