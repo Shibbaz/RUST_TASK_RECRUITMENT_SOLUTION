@@ -8,8 +8,13 @@ use crate::api::credentials::Credentials;
 use crate::api::arguments::ExchangeCurrencyArguments;
 use crate::api::arguments::RatiosListArguments;
 use crate::input::read_input;
+use log::LevelFilter;
+use log::log_enabled;
+use log::Level;
+use log::{info, error};
 
 pub mod api {
+    use log::{info, error};
     use reqwest;
     use serde_json;
     use crate::serde_json::Map;
@@ -103,14 +108,14 @@ pub mod api {
                 Ok(resp) => {
                     let json: serde_json::Value = resp.json().await?;
                     let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
-                    println!("Request was sent to {}/v1/convert", self.credentials.url);
+                    info!("Request was sent to {}/v1/convert", self.credentials.url);
                     if data["response"]["value"].to_string() != "[]" {
                         let f: f32 = data["response"]["value"].to_string().parse().unwrap();
-                        println!("{}{}'ve been converted to {}{}", &self.args.amount, &self.args.from, (f* 100.0).round() / 100.0, &self.args.to);
+                        info!("{}{}'ve been converted to {}{}", &self.args.amount, &self.args.from, (f* 100.0).round() / 100.0, &self.args.to);
                     }
                 }
                 Err(err) => {
-                    println!("Request got an error: {}", err)
+                    error!("Request got an error: {}", err)
                 }
             }
             Ok(())
@@ -142,18 +147,19 @@ pub mod api {
                 Ok(resp) => {
                     let json: serde_json::Value = resp.json().await?;
                     let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
-                    println!("Request was sent to {}/v1/latest", self.credentials.url);
+                    info!("Request was sent to {}/v1/latest", self.credentials.url);
                     for (_,value) in data.iter() {
                         if value["rates"].to_string() != "null" && value["rates"].to_string() != "[]" {
-                            println!("{}", value["rates"])
+                            info!("{}", value["rates"]);
+                            info!("Success!");
                         }
                         if value["rates"].to_string() == "[]"{
-                            println!("You picked up wrong base currency, such does not exist")
+                            error!("You picked up wrong base currency, such does not exist")
                         }
                     }
                 }
                 Err(err) => {
-                    println!("Request got an error: {}", err)
+                    error!("Request got an error: {}", err)
                 }
             }
             Ok(())
@@ -180,7 +186,7 @@ pub mod api {
                 Ok(resp) => {
                     let json: serde_json::Value = resp.json().await?;
                     let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
-                    println!("Request was sent to {}/v1/currencies", self.credentials.url);
+                    info!("Request was sent to {}/v1/currencies", self.credentials.url);
                     for (_, value) in data {
                         match value["short_code"].to_string().as_ref(){
                             "null" => {},
@@ -191,7 +197,7 @@ pub mod api {
                     }
                 }
                 Err(err) => {
-                    println!("Request got an error: {}", err)
+                    error!("Request got an error: {}", err)
                 }
             }
     
@@ -213,10 +219,10 @@ pub mod api {
             let url: &str = &(self.credentials.url.to_string() + "?api_key=" + self.credentials.api_key);
             match reqwest::get(url).await {
                 Ok(_) => {
-                    println!("Request was sent to {}", self.credentials.url)
+                    info!("Request was sent to {}", self.credentials.url)
                 }
                 Err(err) => {
-                    println!("Request got an error: {}", err)
+                    error!("Request got an error: {}", err)
                 }
             }
             Ok(())
@@ -226,8 +232,9 @@ pub mod api {
 
 mod input {
     use std::io;
+    use crate::info;
     pub fn read_input(prompt: &str) -> String{
-        println!("{}",prompt);
+        info!("{}",prompt);
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(_goes_into_input_above) => {},
@@ -248,42 +255,60 @@ mod input {
 /// during execution.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+    log::set_max_level(LevelFilter::Debug);
+    if log_enabled!(Level::Debug) {
+        println!("LOG LEVEL DEBUG");
+    }
     let credentials: &mut Credentials<'_> = &mut Credentials::new();
     loop {
-        let action: &str = &read_input("Type '1' => to check if an API is alive\nType '2' => to print currency list\nType '3' => to print ratios\nType '4' => to exchange currencies\nType 'exit' to exit program");
+        info!("Type '1' => to check if an API is alive");
+        info!("Type '2' => to print currency list");
+        info!("Type '3' => to print ratios");
+        info!("Type '4' => to exchange currencies");
+        info!("Type 'exit' to exit program\n");
+        let action: &str = &read_input("Choose action");
         match action{ 
             "1" => {
-                Request{
+                match (Request{
                     credentials: credentials,
-                }.call().await.expect("Error!");
-            },
-            "2" => {
-                CurrencyListRequest{
-                    credentials: credentials,
-                }.call().await.expect("Error!")
-            },
-            "3" => {
-                let base: String = read_input("Choose param 'base'");
-
-                match (RatiosListRequest{
-                    credentials: credentials,
-                    args: RatiosListArguments{
-                        base: base,
-                    }
                 }).call().await{
                     Ok(_) => {
-                        println!("Success!")
+                        info!("Success!")
                     },
                     Err(_err) => {
-                        println!("Failure!")
+                        error!("Failure!")
                     }
 
                 };
             },
+            "2" => {
+                match (CurrencyListRequest{
+                    credentials: credentials,
+                }).call().await{
+                    Ok(_) => {
+                        info!("Success!")
+                    },
+                    Err(_err) => {
+                        error!("Failure!")
+                    }
+
+                };
+            },
+            "3" => {
+                let base: String = read_input("Choose param 'base'");
+
+                RatiosListRequest{
+                    credentials: credentials,
+                    args: RatiosListArguments{
+                        base: base,
+                    }
+                }.call().await?
+            },
             "4" => {
                 let amount: String = read_input("Choose param 'amount'");
                 if amount.parse::<f64>().is_ok() == false {
-                    println!("Amount must be number");
+                    error!("Amount must be number");
                     continue;
                 }
                 let from: String = read_input("Choose param 'from'");
@@ -298,10 +323,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }).call().await{
                     Ok(_) => {
-                        println!("Success!")
+                        info!("Success!")
                     },
                     Err(_err) => {
-                        println!("Failure!")
+                        error!("Failure!")
                     }
 
                 };
@@ -309,8 +334,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "exit"=> {
                 break
             }, 
-            _=>println!("If you wished to exit, type 'exit'"),
-        }; 
+            _=>info!("If you wished to exit, type 'exit'"),
+        };
+    println!("") 
     }
     Ok(())
 }
