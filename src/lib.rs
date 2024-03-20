@@ -114,7 +114,7 @@ pub mod api {
                     let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
                     if data["response"]["value"].to_string() != "[]" {
                         let f: f32 = data["response"]["value"].to_string().parse().unwrap();
-                        return Ok(Box::new((f* 100.0).round() / 100.0));
+                        return Ok(Box::new(f));
                     }else{
                         return Ok(Box::new(0));
                     }

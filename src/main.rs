@@ -125,7 +125,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }).call().await{
                     Ok(resp) => {
-                        let value = resp.downcast::<f32>().unwrap();
+                        let unboxed = resp.downcast::<f32>().unwrap();
+                        let value =(*unboxed * 100.00).round() / 100.00;
                         info!("{}{}'ve been converted to {}{}", &amount, &from, value, to);
                         println!("{:?}", value);
                         info!("Success!")
