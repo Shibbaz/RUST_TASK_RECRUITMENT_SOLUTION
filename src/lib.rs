@@ -29,6 +29,8 @@ pub mod api {
         }
     }
     pub mod credentials {
+        use std::env;
+
         pub struct Credentials <'a> {
             pub url: &'a str,
             pub api_key: &'a str,
@@ -41,12 +43,16 @@ pub mod api {
             /// 
             /// An instance of the struct that the `new` function is defined in is being returned.
             pub fn new<'a>() -> Self {
-                let params: Credentials = Self{
-                        url: env!("API_URL"),
-                        api_key: env!("API_KEY"),
+                let url: String = match env::var("API_URL") {
+                    Ok(val) => val,
+                    Err(_) => panic!("API_URL is not defined in the environment"),
                 };
-                return params;
+                let api_key: String = match env::var("API_KEY") {
+                    Ok(val) => val,
+                    Err(_) => panic!("API_KEY is not defined in the environment"),
+                };
         
+                Credentials { url: Box::leak(url.into_boxed_str()), api_key: Box::leak(api_key.into_boxed_str()) }     
             }
         }
     }
