@@ -1,5 +1,7 @@
 
 use crate::input::read_input;
+use std::collections::HashMap;
+
 use task::api::{
     ExchangeCurrencyRequest,
     Requests,
@@ -71,7 +73,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match (CurrencyListRequest{
                     credentials: credentials,
                 }).call().await{
-                    Ok(_) => {
+                    Ok(resp) => {
+                        info!("Request was sent to {}/v1/currencies", credentials.url);
+                        let data = resp.downcast::<HashMap<String, String>>().unwrap();
+
+                        for (key, value) in data.into_iter() {
+                            println!("{}:{}", key, value)
+                        }
                         info!("Success!")
                     },
                     Err(_err) => {
@@ -83,12 +91,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "3" => {
                 let base: String = read_input("Choose param 'base'");
 
-                RatiosListRequest{
+                let data = RatiosListRequest{
                     credentials: credentials,
                     args: RatiosListArguments{
                         base: base,
                     }
-                }.call().await?
+                }.call().await?;
+                info!("Request was sent to {}/v1/latest", credentials.url);
+                let rates = &data.downcast::<String>().unwrap();
+                if rates.to_string() == "[]" {
+                    error!("You picked up wrong base currency, such does not exist")
+                }
+                else{
+                    info!("{}", rates.to_string());
+                    info!("Success!");
+                }
             },
             "4" => {
                 let amount: String = read_input("Choose param 'amount'");
@@ -107,11 +124,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         amount: parsed_amount,
                     }
                 }).call().await{
-                    Ok(_) => {
+                    Ok(resp) => {
+                        let value = resp.downcast::<f32>().unwrap();
+                        info!("{}{}'ve been converted to {}{}", &amount, &from, value, to);
+                        println!("{:?}", value);
                         info!("Success!")
                     },
                     Err(_err) => {
-                        error!("Failure!")
+                        error!("Request got an error!")
                     }
 
                 };
