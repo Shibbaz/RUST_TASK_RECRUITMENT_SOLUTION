@@ -1,8 +1,6 @@
 use serde_json;
 use crate::api::{
-    credentials::{
-        Credentials,
-    },
+    credentials::Credentials,
     arguments::{
 ExchangeCurrencyArguments,
         RatiosListArguments,
@@ -10,8 +8,6 @@ ExchangeCurrencyArguments,
 };
 
 pub mod api {
-    use std::error;
-
     use log::{info, error};
     use reqwest;
     use crate::serde_json::Map;
@@ -21,7 +17,7 @@ pub mod api {
     use core::any::Any;
     use std::collections::HashMap;
 
-    pub type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+    pub type Result<T> = std::result::Result<T, Box<(dyn std::error::Error + 'static)>>;
 
     pub mod arguments {
         pub struct RatiosListArguments{
