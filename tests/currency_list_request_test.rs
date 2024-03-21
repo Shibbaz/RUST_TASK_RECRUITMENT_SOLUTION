@@ -2,9 +2,9 @@ pub(crate) use core::any::Any;
 use serde_json::{json, Value};
 use task::api::Requests;
 use task::api::Result;
-pub struct CurrencyListRequestRequestsMock {}
-
-impl Requests for CurrencyListRequestRequestsMock {
+pub struct CurrencyListRequestsMock {}
+/// Mocking CurrencyListRequest
+impl Requests for CurrencyListRequestsMock {
     async fn call(&mut self) -> Result<Box<dyn Any>> {
         let json =  json!({
               "USD": "United States dollar",
@@ -19,7 +19,7 @@ impl Requests for CurrencyListRequestRequestsMock {
 
 #[tokio::test]
 async fn test_currency_list_request_succesful() {
-      let mut client = CurrencyListRequestRequestsMock{};
+      let mut client = CurrencyListRequestsMock{};
       let result: Result<Box<dyn Any>> = client.call().await;
       let value: Value = *result.unwrap().downcast::<Value>().unwrap();
       assert_eq!(value.as_object().unwrap().len(), 4);
