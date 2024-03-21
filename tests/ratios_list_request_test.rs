@@ -6,7 +6,8 @@ use task::api::Result;
 pub struct RatiosListRequestRequestsMock {
   pub args: RatiosListArguments,
 }
-
+/// Mocking RatiosListRequest
+///testing functionality by faking data instead of taking it from external API call
 impl Requests for RatiosListRequestRequestsMock {
     async fn call(&mut self) -> Result<Box<dyn Any>> {
         let json =  json!({

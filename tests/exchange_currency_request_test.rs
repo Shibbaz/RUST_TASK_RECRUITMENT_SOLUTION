@@ -6,7 +6,8 @@ use task::api::Result;
 pub struct ExchangeCurrencyRequestsMock {
   pub args: ExchangeCurrencyArguments,
 }
-
+/// Mocking ExchangeCurrencyRequest
+/// testing functionality by faking data instead of taking it from external API call
 impl Requests for ExchangeCurrencyRequestsMock {
     async fn call(&mut self) -> Result<Box<dyn Any>> {
         let json =  json!({

@@ -4,6 +4,7 @@ use task::api::Requests;
 use task::api::Result;
 pub struct CurrencyListRequestsMock {}
 /// Mocking CurrencyListRequest
+///testing functionality by faking data instead of taking it from external API call
 impl Requests for CurrencyListRequestsMock {
     async fn call(&mut self) -> Result<Box<dyn Any>> {
         let json =  json!({
