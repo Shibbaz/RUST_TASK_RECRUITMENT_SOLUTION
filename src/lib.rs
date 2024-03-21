@@ -88,7 +88,7 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function returns a `Result` with the success type `()` (unit type) and the error type
+        /// The `call` function returns a `Result` with the success type `Box<dyn Any>` and the error type
         /// `Box<dyn std::error::Error>`.
         async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "/v1/convert");
@@ -133,7 +133,7 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function returns a `Result` with the success type `()` (unit type) and the error type
+        /// The `call` function returns a `Result` with the success type 'Box<dyn Any>' and the error type
         /// `Box<dyn std::error::Error>`.
         async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "/v1/latest");
@@ -177,8 +177,8 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function is returning a `Result` enum with the success variant containing `()` (unit
-        /// type) and the error variant containing a boxed trait object that implements the `std::error::Error`
+        /// The `call` function is returning a `Result` enum with the success variant containing `Box<dyn Any>' 
+        ///  and the error variant containing a boxed trait object that implements the `std::error::Error`
         /// trait.
         async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "/v1/currencies?api_key=" + self.credentials.api_key);
@@ -212,8 +212,8 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function returns a `Result` enum with the success variant containing `()`
-        /// (unit type) and the error variant containing a boxed `dyn std::error::Error` trait object.
+        /// The `call` function returns a `Result` enum with the success variant containing '<Box<dyn Any>'
+        ///  and the error variant containing a boxed `dyn std::error::Error` trait object.
         async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "?api_key=" + self.credentials.api_key);
             match reqwest::get(url).await {
