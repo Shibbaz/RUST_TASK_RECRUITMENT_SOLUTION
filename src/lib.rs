@@ -1,8 +1,6 @@
 use serde_json;
 use crate::api::{
-    credentials::{
-        Credentials,
-    },
+    credentials::Credentials,
     arguments::{
 ExchangeCurrencyArguments,
         RatiosListArguments,
@@ -16,6 +14,10 @@ pub mod api {
     use crate::Credentials;
     use crate::ExchangeCurrencyArguments;
     use crate::RatiosListArguments;
+    use core::any::Any;
+    use std::collections::HashMap;
+
+    pub type Result<T> = std::result::Result<T, Box<(dyn std::error::Error + 'static)>>;
 
     pub mod arguments {
         pub struct RatiosListArguments{
@@ -29,6 +31,8 @@ pub mod api {
         }
     }
     pub mod credentials {
+        use std::env;
+
         pub struct Credentials <'a> {
             pub url: &'a str,
             pub api_key: &'a str,
@@ -41,17 +45,21 @@ pub mod api {
             /// 
             /// An instance of the struct that the `new` function is defined in is being returned.
             pub fn new<'a>() -> Self {
-                let params: Credentials = Self{
-                        url: env!("API_URL"),
-                        api_key: env!("API_KEY"),
+                let url: String = match env::var("API_URL") {
+                    Ok(val) => val,
+                    Err(_) => panic!("API_URL is not defined in the environment"),
                 };
-                return params;
+                let api_key: String = match env::var("API_KEY") {
+                    Ok(val) => val,
+                    Err(_) => panic!("API_KEY is not defined in the environment"),
+                };
         
+                Credentials { url: Box::leak(url.into_boxed_str()), api_key: Box::leak(api_key.into_boxed_str()) }     
             }
         }
     }
     pub trait Requests {
-        fn call(&mut self) -> impl std::future::Future<Output = Result<(), Box<dyn std::error::Error>>> + Send;
+        fn call(&mut self) -> impl std::future::Future<Output = Result<Box<dyn Any>>> + Send;
     }
 
     pub struct Request<'a>{
@@ -80,9 +88,9 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function returns a `Result` with the success type `()` (unit type) and the error type
+        /// The `call` function returns a `Result` with the success type `Box<dyn Any>` and the error type
         /// `Box<dyn std::error::Error>`.
-        async fn call(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "/v1/convert");
             let request = reqwest::Url::parse_with_params(url, &[
                 (
@@ -98,22 +106,22 @@ pub mod api {
                     "amount", &self.args.amount.to_string()
                 ),
             ]
-        )?;
+            )?;
             match reqwest::get(request).await {
                 Ok(resp) => {
                     let json: serde_json::Value = resp.json().await?;
                     let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
-                    info!("Request was sent to {}/v1/convert", self.credentials.url);
                     if data["response"]["value"].to_string() != "[]" {
                         let f: f32 = data["response"]["value"].to_string().parse().unwrap();
-                        info!("{}{}'ve been converted to {}{}", &self.args.amount, &self.args.from, (f* 100.0).round() / 100.0, &self.args.to);
+                        return Ok(Box::new(f));
+                    }else{
+                        return Ok(Box::new(0));
                     }
                 }
-                Err(err) => {
-                    error!("Request got an error: {}", err)
+                Err(_) => {
+                    return Err("Request got bad".into())
                 }
             }
-            Ok(())
         }
     }
 /// The `impl Requests for RatiosListRequest<'_>` block in the Rust code is implementing the `Requests` trait for
@@ -125,9 +133,9 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function returns a `Result` with the success type `()` (unit type) and the error type
+        /// The `call` function returns a `Result` with the success type Box of dyn Any and the error type
         /// `Box<dyn std::error::Error>`.
-        async fn call(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "/v1/latest");
             let request = reqwest::Url::parse_with_params(url, &[
                 (
@@ -141,23 +149,20 @@ pub mod api {
             match reqwest::get(request).await {
                 Ok(resp) => {
                     let json: serde_json::Value = resp.json().await?;
-                    let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
-                    info!("Request was sent to {}/v1/latest", self.credentials.url);
-                    for (_,value) in data.iter() {
+                    let data = json.as_object().unwrap().iter();
+                    let mut ratios: String = "[]".to_string();
+                    for (_,value) in data {
                         if value["rates"].to_string() != "null" && value["rates"].to_string() != "[]" {
-                            info!("{}", value["rates"]);
-                            info!("Success!");
-                        }
-                        if value["rates"].to_string() == "[]"{
-                            error!("You picked up wrong base currency, such does not exist")
+                            ratios = value["rates".to_string()].to_string();
+                            break;
                         }
                     }
+                    return Ok(Box::new(ratios));
                 }
-                Err(err) => {
-                    error!("Request got an error: {}", err)
+                Err(_err) => {
+                    return Err("Request went bad".into());
                 }
             }
-            Ok(())
         }
     }
     
@@ -172,31 +177,30 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function is returning a `Result` enum with the success variant containing `()` (unit
-        /// type) and the error variant containing a boxed trait object that implements the `std::error::Error`
+        /// The `call` function is returning a `Result` enum with the success variant containing `Box<dyn Any>' 
+        ///  and the error variant containing a boxed trait object that implements the `std::error::Error`
         /// trait.
-        async fn call(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "/v1/currencies?api_key=" + self.credentials.api_key);
-            match reqwest::get(url).await {
+            match reqwest::get(url).await{
                 Ok(resp) => {
                     let json: serde_json::Value = resp.json().await?;
-                    let data: &Map<String, serde_json::Value> = &json.as_object().unwrap();
-                    info!("Request was sent to {}/v1/currencies", self.credentials.url);
-                    for (_, value) in data {
+                    let data: Map<String, serde_json::Value> = json.as_object().unwrap().clone();
+                    let mut result: HashMap<std::string::String, std::string::String> = HashMap::new();
+                    for (_, value) in data.into_iter() {
                         match value["short_code"].to_string().as_ref(){
                             "null" => {},
                             _ => {
-                                println!("{}:{}", value["short_code"], value["name"])
+                                result.insert(value["short_code"].to_string(), value["name"].to_string());
                             }
                         }
                     }
+                    return Ok(Box::new(result));
                 }
-                Err(err) => {
-                    error!("Request got an error: {}", err)
+                Err(_) => {
+                    return Err("Request went bad".into());
                 }
-            }
-    
-            Ok(())
+            };    
         }
     }
     
@@ -208,9 +212,9 @@ pub mod api {
         /// 
         /// Returns:
         /// 
-        /// The `call` function returns a `Result` enum with the success variant containing `()`
-        /// (unit type) and the error variant containing a boxed `dyn std::error::Error` trait object.
-        async fn call(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        /// The `call` function returns a `Result` enum with the success variant containing Box of dyn Any
+        ///  and the error variant containing a boxed `dyn std::error::Error` trait object.
+        async fn call(&mut self) -> Result<Box<dyn Any>> {
             let url: &str = &(self.credentials.url.to_string() + "?api_key=" + self.credentials.api_key);
             match reqwest::get(url).await {
                 Ok(_) => {
@@ -220,7 +224,7 @@ pub mod api {
                     error!("Request got an error: {}", err)
                 }
             }
-            Ok(())
+            Ok(Box::new(()))
         }
     }
 }
