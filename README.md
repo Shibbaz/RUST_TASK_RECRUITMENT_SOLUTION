@@ -1,6 +1,6 @@
 # Instructions
 - Setting up
-
+  - to run tests `cargo test`
   - To build docs ```cargo doc```
   - to build project ```cargo build```
   - to run ```RUST_LOG=task cargo run```
